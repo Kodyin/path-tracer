@@ -245,56 +245,54 @@ __global__ void render_kernel(float3 *output){
                 r = r + radiance(ray, ss)*(1. / samps);
             } // Camera rays are pushed forward to start in interior 
             // write rgb value of pixel to image buffer on the GPU, clamp value to [0.0f, 1.0f] range
-            output[i] += make_float3(clamp(r.x, 0.0f, 1.0f), clamp(r.y, 0.0f, 1.0f), clamp(r.z, 0.0f, 1.0f))*0.25;
+             output[i] = make_float3(0.0f);
+             output[i] += make_float3(clamp(r.x, 0.0f, 1.0f), clamp(r.y, 0.0f, 1.0f), clamp(r.z, 0.0f, 1.0f));
+             //output[i] += make_float3(clamp(r.x), clamp(r.y), clamp(r.z))*0.25;
         }
 }
 
-inline float clamp(float x){ return x < 0.0f ? 0.0f : x > 1.0f ? 1.0f : x; } 
-
-// convert range [0,1] to int in range [0, 255] and gamma correction
-inline int toInt(float x){ return int(pow(clamp(x), 1 / 2.2) * 255 + .5); }  
+inline float clamp(float x){ return x < 0.0f ? 0.0f : x > 1.0f ? 1.0f : x; }
+inline int toInt(float x){ return int(pow(clamp(x), 1 / 2.2) * 255 + .5); }  // convert RGB float in range [0,1] to int in range [0, 255] and perform gamma correction
 
 int main(){
 
-    float3* output_h = new float3[width*height]; // pointer to memory for image on the host (system RAM)
-    float3* output_d;    // pointer to memory for image on the device (GPU VRAM)
+   float3* output_h = new float3[width*height]; // pointer to memory for image on the host (system RAM)
+   float3* output_d;    // pointer to memory for image on the device (GPU VRAM)
 
-    std::clock_t start;
-    long double duration;
+   std::clock_t start;
+   long double duration;
 
-    start = std::clock(); 
+   start = std::clock();
+   // allocate memory on the CUDA device (GPU VRAM)
+   cudaMalloc(&output_d, width * height * sizeof(float3));
 
-    cudaMalloc(&output_d, width * height * sizeof(float3));
-    dim3 block(8, 8, 1);   
-    dim3 grid(width / block.x, height / block.y, 1);
+   // dim3 is CUDA specific type, block and grid are required to schedule CUDA threads over streaming multiprocessors
+   dim3 block(16, 16, 1);
+   dim3 grid(width / block.x, height / block.y, 1);
 
-    printf("CUDA initialised.\nStart rendering...\n");
+   printf("CUDA initialised.\nStart rendering...\n");
 
-    // schedule threads on device and launch CUDA kernel from host
-    render_kernel <<< grid, block >>>(output_d);  
+   // schedule threads on device and launch CUDA kernel from host
+   render_kernel <<< grid, block >>>(output_d);
 
-    // copy results of computation from device back to host
-    cudaMemcpy(output_h, output_d, width * height *sizeof(float3), cudaMemcpyDeviceToHost);  
+   // copy results of computation from device back to host
+   cudaMemcpy(output_h, output_d, width * height *sizeof(float3), cudaMemcpyDeviceToHost);
 
-    duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+   duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
 
-    fprintf (stdout, "Time to execute first add GPU reduction kernel: %Lg secs\n", duration);
-    // free CUDA memory
-    cudaFree(output_d);  
-    printf("Done!\n");
+   fprintf (stdout, "Time to execute first add GPU reduction kernel: %Lg secs\n", duration);
+   // free CUDA memory
+   cudaFree(output_d);
 
-    // Write image to PPM file, a very simple image file format
-    FILE *f = fopen("smallptcuda.ppm", "w");          
-    fprintf(f, "P3\n%d %d\n%d\n", width, height, 255);
-    for (int i = 0; i < width*height; i++)  // loop over pixels, write RGB values
+   printf("Done!\n");
+
+   // Write image to PPM file, a very simple image file format
+   FILE *f = fopen("smallptcuda.ppm", "w");
+   fprintf(f, "P3\n%d %d\n%d\n", width, height, 255);
+   for (int i = 0; i < width*height; i++)  // loop over pixels, write RGB values
     fprintf(f, "%d %d %d ", toInt(output_h[i].x),
                             toInt(output_h[i].y),
                             toInt(output_h[i].z));
 
-    printf("Saved image to 'smallptcuda.ppm'\n");
-
-    delete[] output_h;
+   printf("Saved image to 'smallptcuda.ppm'\n");
 }
-
-
-
