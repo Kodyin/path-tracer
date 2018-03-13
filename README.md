@@ -1,2 +1,7 @@
-# GPU-path-tracing-tutorial-1
-Code accompanying blog post on http://raytracey.blogspot.co.nz/2015/10/gpu-path-tracing-tutorial-1-drawing.html
+# CUDA-Path-tracer
+
+    module load gcc/4.3.3
+    module load CUDA/5.0
+    nvcc smallptCUDA.cu timer.c -o s1
+ 
+    
