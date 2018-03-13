@@ -1,0 +1,12 @@
+Script began: Wed Feb 28 22:27:16 PST 2018
+Node: compute-1-14.local
+Current directory: /data/users/gaozhiqw/GPU-path-tracing-tutorial-1
+
+=== Running 5 trials of naive ... ===
+CUDA initialised.
+Start rendering...
+Time to execute first add GPU reduction kernel: 64.83 secs
+Done!
+Saved image to 'smallptcuda.ppm'
+
+=== Done! ===

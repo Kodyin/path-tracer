@@ -1,0 +1,11 @@
+Script began: Wed Feb 28 11:51:05 PST 2018
+Node: compute-1-14.local
+Current directory: /data/users/gaozhiqw/GPU-path-tracing-tutorial-1
+
+=== Running 5 trials of naive ... ===
+CUDA initialised.
+Start rendering...
+Done!
+Saved image to 'smallptcuda.ppm'
+
+=== Done! ===
